@@ -6,7 +6,7 @@
 Если ссылка не работает, найти mystem версии 3.1 на сайте https://yandex.ru/dev/mystem.
 2. Распаковать архив. Исполняемый файл mystem.exe переместить в *C:\Users\CurrentUser\\.local\bin*. 
 Т.е. итоговый путь файла будет *C:\Users\CurrentUser\\.local\bin\mystem.exe*. Если директории .local\bin не существует, создать самостоятельно.
-3. Переместить исполняемый файл main.exe из dist\main в любое удобное место, например на рабочий стол.
+3. Переместить исполняемый файл main.exe и папку _internal из dist\main в любое удобное место, например на рабочий стол.
 
 ## Использование
 
@@ -39,6 +39,10 @@
 По умолчанию применяется сортировка по алфавиту (`--sort alphabetic`).
 
 Пример: `.\main.exe --texts "C:\User\Miroslav\text1.txt" --sort frequency-reverse`
+
+Также есть сортировка по частоте только для первого текста, при которой остальные тексты сортируются по порядку слов из первого текста (`frequency-first`).  
+
+Пример: `.\main.exe --texts "C:\User\Miroslav\text1.txt" "C:\User\Miroslav\text2.txt" --sort frequency-first`
 
 `-ep` ИЛИ `--exclude-pos` - Исключить из подсчета отдельные части речи.  Части речи указываются через пробел. 
 Расшифровку частей речи mystem можно посмотреть по [ссылке](https://yandex.ru/dev/mystem/doc/ru/grammemes-values) или в таблице ниже.

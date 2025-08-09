@@ -20,6 +20,7 @@ class SortType(StrEnum):
     alphabetic_reverse = "alphabetic-reverse"
     frequency = "frequency"
     frequency_reverse = "frequency-reverse"
+    frequency_by_first = "frequency-first"
 
 
 def process_text_files(file_paths: list[Path], exclude_proper_names: bool = False, sort_type: SortType = SortType.alphabetic,
@@ -48,7 +49,8 @@ def normalize_text_vectors(text_vectors: list[dict[tuple[str,str],int]], sort_ty
     all_keys = []
     for text_vector in text_vectors:
         all_keys.extend(text_vector.keys())
-    for text_vector in text_vectors:
+    for i in range(len(text_vectors)):
+        text_vector = text_vectors[i]
         for key in all_keys:
             if key not in text_vector:
                 text_vector[key] = 0
@@ -61,6 +63,13 @@ def normalize_text_vectors(text_vectors: list[dict[tuple[str,str],int]], sort_ty
             sorted_dict = dict(sorted(text_vector.items(), key=lambda item: item[1]))
         elif sort_type == SortType.frequency_reverse:
             sorted_dict = dict(sorted(text_vector.items(), key=lambda item: item[1], reverse=True))
+        elif sort_type == SortType.frequency_by_first:
+            if i == 0:
+                # сортировка по убыванию частоты для первого текста
+                sorted_dict = dict(sorted(text_vector.items(), key=lambda item: item[1], reverse=True))
+            else:
+                # сортировка по порядку слов в отсортированном первом для остальных текстов
+                sorted_dict = {key: text_vector[key] for key in result[0]}
         else:
             sorted_dict = dict(sorted(text_vector.items()))
         result.append(sorted_dict)
@@ -94,6 +103,7 @@ if __name__ == '__main__':
         choices=list(SortType),
         default=SortType.alphabetic,
         help='Сортировка по алфавиту (alphabetic, alphabetic-reverse) или частоте (frequency, frequency-reverse). '
+             'Сортировка по частоте первого текста и остальных по частотам первого (frequency-first)'
              'По умолчанию применяется сортировка по алфавиту (--sort alphabetic).'
     )
     parser.add_argument(
@@ -116,9 +126,8 @@ if __name__ == '__main__':
     if args.debug:
         basicConfig(level=DEBUG)
     if len(args.texts) > 0:
-        if len(args.texts) > 1 and args.sort != SortType.alphabetic:
+        if len(args.texts) > 1 and (args.sort == SortType.frequency or args.sort == SortType.frequency_reverse):
             logger.warning('На одинаковых местах в итоговых векторах будут стоять разные слова (из-за разных частот)!')
-
         missing = [p for p in args.texts if not p.is_file()]
         if missing:
             parser.error(f'Файлы не найдены: {", ".join(map(str, missing))}')
