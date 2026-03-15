@@ -2,6 +2,7 @@ from argparse import ArgumentParser, ArgumentTypeError
 from enum import StrEnum
 from logging import getLogger, basicConfig, INFO, DEBUG
 from pathlib import Path
+from json import dumps
 
 from reports import save_report
 from text_preprocessing import read_and_assemble_sentences
@@ -32,11 +33,13 @@ def process_text_files(file_paths: list[Path], exclude_proper_names: bool = Fals
         logger.info(f'Обработка {file_path.stem}')
         sentences = read_and_assemble_sentences(file_path)
         result_vector = extract_lemmas_from_sentences(sentences, exclude_proper_names, exclude_pos)
+        # with open(file_path.stem+'_sent_dict_fixed'+'.json', 'w', encoding='utf-8') as f:
+        #     f.write(dumps(result_vector,ensure_ascii=False, indent=3))
         text_vectors.append(result_vector)
     text_vectors = normalize_text_vectors(text_vectors, sort_type)
     save_report(text_vectors, file_paths)
 
-
+# к этому моменту слова уже пропали
 def normalize_text_vectors(text_vectors: list[dict[tuple[str,str],int]], sort_type: SortType):
     """
     Приводим вектора текстов к одной длине, если слово отсутствует в тексте его частота приравнивается к нулю
@@ -46,9 +49,9 @@ def normalize_text_vectors(text_vectors: list[dict[tuple[str,str],int]], sort_ty
     """
     logger.info('Нормализация словарей')
     result = list()
-    all_keys = []
+    all_keys = set()
     for text_vector in text_vectors:
-        all_keys.extend(text_vector.keys())
+        all_keys.update(text_vector.keys())
     for i in range(len(text_vectors)):
         text_vector = text_vectors[i]
         for key in all_keys:

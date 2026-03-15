@@ -4,7 +4,6 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
-
 logger = getLogger(__name__)
 
 
@@ -13,34 +12,75 @@ def save_report(result_vectors: list[dict[tuple[str, str], int]], original_files
     workbook = Workbook()
     worksheet = workbook.active
     current_date = datetime.now()
+
+    # Шаг отступа для каждого нового файла.
+    # 4 столбца данных (Слово, Часть речи, Частота, Доля) + 1 пустой столбец-разделитель
+    COLUMNS_PER_FILE = 5
+
     for index, vector in enumerate(result_vectors):
+        # Вычисляем номер начального столбца для текущего файла (1, 6, 11, ...)
+        base_col = 1 + (index * COLUMNS_PER_FILE)
 
-        worksheet.append([original_files[index].stem])
+        # Текущая строка для записи (сбрасывается в 1 для каждого нового файла)
+        current_row = 1
 
-        worksheet.append(['Слово'] + [k[0] for k in vector])
-        worksheet.append(['Часть речи'] + [k[1] for k in vector])
+        # 1. Записываем имя файла (заголовок блока)
+        worksheet.cell(row=current_row, column=base_col, value=original_files[index].stem)
+        current_row += 1
 
-        freq_row_start = worksheet.max_row + 1
-        worksheet.append(['Частота'] + list(vector.values()))
-        freq_row_end = worksheet.max_row
-        freq_col_start = 2  # B
-        freq_col_end = 1 + len(vector)
-        freq_start_cell = worksheet.cell(row=freq_row_start, column=freq_col_start).coordinate
-        freq_end_cell = worksheet.cell(row=freq_row_end, column=freq_col_end).coordinate
+        # 2. Заголовки столбцов
+        headers = ['Слово', 'Часть речи', 'Частота', 'Доля']
+        for i, header in enumerate(headers):
+            worksheet.cell(row=current_row, column=base_col + i, value=header)
 
+        current_row += 1
 
+        # Подготовка к циклу данных
         freq_sum = sum(vector.values())
-        data = ['Доля'] + [round(v / freq_sum, 6) for v in vector.values()]
-        share_row_start = worksheet.max_row + 1
-        worksheet.append(data)
-        share_row_end = worksheet.max_row
-        share_col_start = 2
-        share_col_end = 1 + len(vector)
-        share_start_cell = worksheet.cell(row=share_row_start, column=share_col_start).coordinate
-        share_end_cell = worksheet.cell(row=share_row_end, column=share_col_end).coordinate
+        if freq_sum == 0:
+            freq_sum = 1  # Защита от деления на ноль
 
-        worksheet.append(['Частоты', freq_start_cell, freq_end_cell])
-        worksheet.append(['Доли', share_start_cell, share_end_cell])
+        data_start_row = current_row
+
+        # 3. Запись данных построчно
+        for (word, pos), freq in vector.items():
+            share = round(freq / freq_sum, 6)
+
+            # Пишем в соответствующие столбцы относительно base_col
+            worksheet.cell(row=current_row, column=base_col, value=word)  # Слово
+            worksheet.cell(row=current_row, column=base_col + 1, value=pos)  # Часть речи
+            worksheet.cell(row=current_row, column=base_col + 2, value=freq)  # Частота
+            worksheet.cell(row=current_row, column=base_col + 3, value=share)  # Доля
+
+            current_row += 1
+
+        data_end_row = current_row - 1
+
+        # 4. Запись метаданных (координат), если были данные
+        if data_end_row >= data_start_row:
+            # Координаты столбцов с Частотой и Долей
+            freq_col_idx = base_col + 2
+            share_col_idx = base_col + 3
+
+            # Получаем строковые координаты (например, "C3", "C100")
+            freq_start_cell = worksheet.cell(row=data_start_row, column=freq_col_idx).coordinate
+            freq_end_cell = worksheet.cell(row=data_end_row, column=freq_col_idx).coordinate
+
+            share_start_cell = worksheet.cell(row=data_start_row, column=share_col_idx).coordinate
+            share_end_cell = worksheet.cell(row=data_end_row, column=share_col_idx).coordinate
+
+            # Пишем служебную информацию под таблицей данных
+            # Строка "Частоты", start, end
+            worksheet.cell(row=current_row, column=base_col, value='Частоты')
+            worksheet.cell(row=current_row, column=base_col + 1, value=freq_start_cell)
+            worksheet.cell(row=current_row, column=base_col + 2, value=freq_end_cell)
+            current_row += 1
+
+            # Строка "Доли", start, end
+            worksheet.cell(row=current_row, column=base_col, value='Доли')
+            worksheet.cell(row=current_row, column=base_col + 1, value=share_start_cell)
+            worksheet.cell(row=current_row, column=base_col + 2, value=share_end_cell)
+
     filename = f'Statistics {current_date.strftime("%Y-%m-%d %H %M %S")}.xlsx'
     workbook.save(filename)
     path = Path(f'./{filename}').resolve()

@@ -57,6 +57,7 @@ def read_file_and_parse_sentences(path:Path) -> list[list[str]]:
     parsed_sentences_lists = []
     with path.open(encoding='utf-8') as f:
         for line in f:
+            # ([^\w\s]|\w+)\s+[^\w\s]
             sentences = split_line_to_sentences(line)
             parsed_sentences_lists.append(sentences)
     return parsed_sentences_lists
@@ -66,3 +67,8 @@ def read_and_assemble_sentences(file_path:Path) -> list[str]:
     logger.info('Чтение и сборка списка предложений')
     parsed_sentences_lists = read_file_and_parse_sentences(file_path)
     return assemble_sentences(parsed_sentences_lists)
+    # parsed_sentences_lists = read_file_and_parse_sentences(file_path)
+    # result = []
+    # for sentences_list in parsed_sentences_lists:
+    #     result.extend(sentences_list)
+    # return parsed_sentences_lists
